@@ -3,9 +3,15 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import * as esbuild from "esbuild";
-import { TRACK_MERGE_CALL_NAME, transformSpreadProvenance } from "./transformSpreadProvenance.js";
+import { loadMergeFunctionsConfig } from "./loadMergeFunctionsConfig.js";
+import {
+  GET_PROVENANCE_CALL_NAME,
+  TRACK_AND_ATTACH_CALL_NAME,
+  transformProvenanceTracking,
+} from "./transformProvenanceTracking.js";
 
 const RESULT_MARKER = "__FRAGMENT_MOCK_RESULT__";
+const PROVENANCE_ENTRIES_SUFFIX = "__provenanceEntries";
 
 export type VariableOverrides = { path: string; overriddenBy: string[] }[];
 
@@ -22,19 +28,21 @@ export function executeTopLevelVariables(
   variableNames: string[],
   trackMergeModulePath: string,
 ): ExecutionResult {
-  const { transformedSource, provenanceVariableNames } = transformSpreadProvenance(fileName, sourceText);
+  const mergeFunctions = loadMergeFunctionsConfig(dirname(fileName));
+  const { transformedSource } = transformProvenanceTracking(fileName, sourceText, mergeFunctions);
 
-  const importLine = `import { trackMerge as ${TRACK_MERGE_CALL_NAME} } from ${JSON.stringify(trackMergeModulePath)};\n`;
+  const importLine = `import { trackAndAttach as ${TRACK_AND_ATTACH_CALL_NAME}, getProvenance as ${GET_PROVENANCE_CALL_NAME} } from ${JSON.stringify(trackMergeModulePath)};\n`;
 
-  // Provenance variables hold a Map, which JSON.stringify serializes as `{}`
-  // by default, so each one is spread into a plain [path, entry][] array
-  // instead of being captured by shorthand like the plain variables.
-  const captureFields = [
-    ...variableNames,
-    ...[...provenanceVariableNames.values()].map(
-      (provenanceName) => `${JSON.stringify(provenanceName)}: [...${provenanceName}.entries()]`,
-    ),
-  ];
+  // Provenance is fetched uniformly for every top-level variable (rather
+  // than only ones we know we transformed) since a value can also end up
+  // carrying provenance indirectly — e.g. by simply aliasing a tracked one.
+  // getProvenance returns undefined for anything untracked, and JSON.stringify
+  // omits an object field whose value is undefined, so untracked variables
+  // just don't get a "*__provenanceEntries" key at all.
+  const captureFields = variableNames.flatMap((name) => [
+    name,
+    `${JSON.stringify(`${name}${PROVENANCE_ENTRIES_SUFFIX}`)}: (() => { const p = ${GET_PROVENANCE_CALL_NAME}(${name}); return p ? [...p.entries()] : undefined; })()`,
+  ]);
   const captureLine = `console.log(${JSON.stringify(RESULT_MARKER)} + JSON.stringify({ ${captureFields.join(", ")} }));\n`;
 
   const instrumentedSource = `${importLine}${transformedSource}\n${captureLine}`;
@@ -70,13 +78,16 @@ export function executeTopLevelVariables(
     const rawResult = JSON.parse(markerLine.slice(RESULT_MARKER.length)) as Record<string, unknown>;
 
     const values: Record<string, unknown> = {};
+    const overridesByName: Record<string, VariableOverrides> = {};
+
     for (const name of variableNames) {
       values[name] = rawResult[name];
-    }
 
-    const overridesByName: Record<string, VariableOverrides> = {};
-    for (const [name, provenanceName] of provenanceVariableNames) {
-      const entries = rawResult[provenanceName] as [string, ProvenanceEntry][];
+      const entries = rawResult[`${name}${PROVENANCE_ENTRIES_SUFFIX}`] as
+        | [string, ProvenanceEntry][]
+        | undefined;
+      if (!entries) continue;
+
       const overrides = entries
         .filter(([, entry]) => (entry.overriddenBy?.length ?? 0) > 0)
         .map(([path, entry]) => ({ path, overriddenBy: entry.overriddenBy ?? [] }));
