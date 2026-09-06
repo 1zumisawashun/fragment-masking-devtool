@@ -8,7 +8,11 @@ type WebviewMessage =
   | {
       type: "topLevelVariables";
       fileName: string;
-      variables: { name: string; value: unknown }[];
+      variables: {
+        name: string;
+        value: unknown;
+        overrides?: { path: string; overriddenBy: string[] }[];
+      }[];
     }
   | { type: "error"; text: string };
 
@@ -27,7 +31,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       panel.webview.onDidReceiveMessage((message: { type: string }) => {
         if (message.type === "ready") {
-          panel.webview.postMessage(buildTopLevelVariablesMessage(uri));
+          panel.webview.postMessage(buildTopLevelVariablesMessage(uri, context));
         }
       });
     },
@@ -38,7 +42,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {}
 
-function buildTopLevelVariablesMessage(uri?: vscode.Uri): WebviewMessage {
+function buildTopLevelVariablesMessage(
+  uri: vscode.Uri | undefined,
+  context: vscode.ExtensionContext,
+): WebviewMessage {
   if (!uri) {
     return { type: "error", text: "対象ファイルが選択されていません" };
   }
@@ -46,8 +53,18 @@ function buildTopLevelVariablesMessage(uri?: vscode.Uri): WebviewMessage {
   try {
     const sourceText = readFileSync(uri.fsPath, "utf-8");
     const variableNames = parseTopLevelVariableNames(uri.fsPath, sourceText);
-    const values = executeTopLevelVariables(uri.fsPath, sourceText, variableNames);
-    const variables = variableNames.map((name) => ({ name, value: values[name] }));
+    const trackMergeModulePath = vscode.Uri.joinPath(context.extensionUri, "src", "trackMerge.ts").fsPath;
+    const { values, overridesByName } = executeTopLevelVariables(
+      uri.fsPath,
+      sourceText,
+      variableNames,
+      trackMergeModulePath,
+    );
+    const variables = variableNames.map((name) => ({
+      name,
+      value: values[name],
+      overrides: overridesByName[name],
+    }));
 
     return { type: "topLevelVariables", fileName: uri.fsPath, variables };
   } catch (error) {

@@ -6,7 +6,11 @@ type ExtensionMessage =
   | {
       type: "topLevelVariables";
       fileName: string;
-      variables: { name: string; value: unknown }[];
+      variables: {
+        name: string;
+        value: unknown;
+        overrides?: { path: string; overriddenBy: string[] }[];
+      }[];
     }
   | { type: "error"; text: string };
 
@@ -35,9 +39,16 @@ export function App() {
         <>
           <p>{message.fileName}</p>
           <ul>
-            {message.variables.map(({ name, value }) => (
+            {message.variables.map(({ name, value, overrides }) => (
               <li key={name}>
-                <ValueNode label={name} value={value} />
+                <ValueNode
+                  label={name}
+                  value={value}
+                  path=""
+                  overriddenByPath={
+                    new Map(overrides?.map((override) => [override.path, override.overriddenBy]))
+                  }
+                />
               </li>
             ))}
           </ul>
