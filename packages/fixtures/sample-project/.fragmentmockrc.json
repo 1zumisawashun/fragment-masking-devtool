@@ -1,0 +1,6 @@
+{
+  "mergeFunctions": [
+    { "name": "merge", "argsAreSources": "all" },
+    { "name": "maskFragments", "argsAreSources": [1] }
+  ]
+}
