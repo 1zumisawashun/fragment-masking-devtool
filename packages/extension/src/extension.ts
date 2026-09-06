@@ -1,10 +1,15 @@
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
+import { executeTopLevelVariables } from "./executeTopLevelVariables.js";
 import { parseTopLevelVariableNames } from "./parseTopLevelVariables.js";
 
 type WebviewMessage =
-  | { type: "topLevelVariables"; fileName: string; variableNames: string[] }
+  | {
+      type: "topLevelVariables";
+      fileName: string;
+      variables: { name: string; value: unknown }[];
+    }
   | { type: "error"; text: string };
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -38,10 +43,16 @@ function buildTopLevelVariablesMessage(uri?: vscode.Uri): WebviewMessage {
     return { type: "error", text: "対象ファイルが選択されていません" };
   }
 
-  const sourceText = readFileSync(uri.fsPath, "utf-8");
-  const variableNames = parseTopLevelVariableNames(uri.fsPath, sourceText);
+  try {
+    const sourceText = readFileSync(uri.fsPath, "utf-8");
+    const variableNames = parseTopLevelVariableNames(uri.fsPath, sourceText);
+    const values = executeTopLevelVariables(uri.fsPath, sourceText, variableNames);
+    const variables = variableNames.map((name) => ({ name, value: values[name] }));
 
-  return { type: "topLevelVariables", fileName: uri.fsPath, variableNames };
+    return { type: "topLevelVariables", fileName: uri.fsPath, variables };
+  } catch (error) {
+    return { type: "error", text: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 function buildWebviewHtml(webview: vscode.Webview, context: vscode.ExtensionContext): string {

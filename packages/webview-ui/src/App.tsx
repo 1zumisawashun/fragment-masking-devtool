@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { getVsCodeApi } from "./vscodeApi";
+import { ValueNode } from "./ValueNode";
 
 type ExtensionMessage =
-  | { type: "topLevelVariables"; fileName: string; variableNames: string[] }
+  | {
+      type: "topLevelVariables";
+      fileName: string;
+      variables: { name: string; value: unknown }[];
+    }
   | { type: "error"; text: string };
 
 export function App() {
@@ -30,8 +35,10 @@ export function App() {
         <>
           <p>{message.fileName}</p>
           <ul>
-            {message.variableNames.map((name) => (
-              <li key={name}>{name}</li>
+            {message.variables.map(({ name, value }) => (
+              <li key={name}>
+                <ValueNode label={name} value={value} />
+              </li>
             ))}
           </ul>
         </>
