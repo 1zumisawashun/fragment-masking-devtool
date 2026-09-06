@@ -85,6 +85,13 @@ sub-issue一覧と進捗を自動的に表示する。
 
 - すでに実質的に終わっている・些末なグループについては、sub-issueを作らずスキップするか
   ユーザーに確認する（ノイズを増やさない）。
-- 親issueにすでにsub-issueが存在する場合（`gh issue view <n> --json subIssues` は
-  対応していないことがあるので、不明なら `gh issue view <n> --web` でissueページを確認するか
-  ユーザーに聞く）、重複して追加する前に確認する。
+- 親issueにすでにsub-issueが存在する場合、重複して追加する前に確認する。
+  `gh issue view <n> --json subIssues` は対応していないため、GraphQLで直接確認する
+  （`refinement` skillが使っているのと同じクエリ）:
+  ```bash
+  gh api graphql -f query='query { repository(owner:"<owner>", name:"<repo>") { issue(number: <n>) { subIssues(first: 20) { totalCount nodes { number title state } } } } }'
+  ```
+- `--parent`によるリンクは作成時点限りのスナップショットで、後から親issueの本文を編集しても
+  既存のsub-issueには自動反映されない。実装中（`implement`）にスコープへ影響する発見があった
+  場合は、親issueだけでなく影響する他のsub-issueの本文も手動で更新する（sub-issue同士は
+  `Part of #<親>`でしか繋がっておらず、兄弟間の依存関係は本文に明記しない限り誰にも見えない）。
