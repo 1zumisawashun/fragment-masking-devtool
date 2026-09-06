@@ -19,17 +19,26 @@ export const staffSpreadMock = {
   ...staffStatusMock,
 };
 
-// Pattern: merge() (es-toolkit)
-export const staffMergeMock = merge(staffBaseMock, staffStatusMock);
+// es-toolkit's merge() mutates and returns its first argument, so each
+// pattern below merges into a fresh clone of staffBaseMock rather than the
+// shared module-level object — otherwise every merge() call after the first
+// would silently operate on an already-mutated target, and staffMergeMock /
+// staffMaskedMock / staffMaskedNestedMock would all collapse into the same
+// object reference instead of being independently traceable patterns.
 
-// Pattern: maskFragments(fragments, data)
+// Pattern: merge() (es-toolkit)
+export const staffMergeMock = merge(structuredClone(staffBaseMock), staffStatusMock);
+
+// Pattern: maskFragments(fragments, data) — maskFragments() itself is a
+// runtime no-op passthrough (gql.tada/testing), so the interesting work
+// here is entirely the merge() feeding it.
 export const staffMaskedMock = maskFragments(
   [StaffBaseFragment, StaffStatusFragment],
-  staffMergeMock,
+  merge(structuredClone(staffBaseMock), staffStatusMock),
 );
 
 // Pattern: nested merge inside maskFragments — maskFragments(fragments, merge(a, b))
 export const staffMaskedNestedMock = maskFragments(
   [StaffBaseFragment, StaffStatusFragment],
-  merge(staffBaseMock, staffStatusMock),
+  merge(structuredClone(staffBaseMock), staffStatusMock),
 );
