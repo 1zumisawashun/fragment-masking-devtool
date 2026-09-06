@@ -1,14 +1,41 @@
 {
-  "name": "extension",
+  "name": "fragment-mock-viewer",
+  "displayName": "Fragment Mock Viewer",
+  "description": "graphql-tadaのfragment maskingを使ったmockデータの由来を可視化するVS Code拡張",
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": ["Other"],
+  "main": "./dist/extension.cjs",
+  "contributes": {
+    "commands": [
+      {
+        "command": "fragmentMock.visualizeOverrides",
+        "title": "Fragment Mock: 上書きを可視化"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "fragmentMock.visualizeOverrides",
+          "when": "resourceExtname == .ts",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
   "scripts": {
     "spike": "tsx src/spike.ts",
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
+    "@types/vscode": "^1.90.0",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   }
