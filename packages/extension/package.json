@@ -29,7 +29,7 @@
   },
   "scripts": {
     "spike": "tsx src/spike.ts",
-    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs",
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --external:esbuild --outfile=dist/extension.cjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
