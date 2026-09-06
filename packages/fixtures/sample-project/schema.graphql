@@ -1,0 +1,20 @@
+type Query {
+  staff(id: ID!): Staff
+}
+
+type Staff {
+  id: ID!
+  staffId: ID!
+  status: StaffStatus!
+  scheduledAt: String
+  address: StaffAddress
+}
+
+type StaffStatus {
+  detail: String!
+}
+
+type StaffAddress {
+  prefecture: String!
+  city: String!
+}

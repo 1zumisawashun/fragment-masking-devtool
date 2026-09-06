@@ -2,5 +2,20 @@
   "name": "sample-project",
   "version": "0.0.1",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "es-toolkit": "^1.52.0",
+    "gql.tada": "^1.11.3",
+    "graphql": "^17.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "msw": "^2.15.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "codegen": "gql.tada generate-output",
+    "typecheck": "tsc --noEmit"
+  }
 }
