@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  packages/extension:
     devDependencies:
       '@types/node':
         specifier: ^26.4.1
@@ -17,6 +19,10 @@ importers:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+
+  packages/fixtures/sample-project: {}
+
+  packages/webview-ui: {}
 
 packages:
 

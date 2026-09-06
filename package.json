@@ -1,22 +1,9 @@
 {
   "name": "fragment-masking-devtool",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Fragment Mock Viewer — VS Code extension for graphql-tada fragment masking provenance",
   "private": true,
-  "type": "module",
-  "scripts": {
-    "spike": "tsx src/spike.ts"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "packageManager": "pnpm@10.28.0",
-  "devDependencies": {
-    "@types/node": "^26.4.1",
-    "tsx": "^4.23.13",
-    "typescript": "^5.9.3"
-  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"

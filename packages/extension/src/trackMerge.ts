@@ -29,15 +29,14 @@ function mergeAndTrack(
   if (typeof source !== "object" || source === null || Array.isArray(source)) {
     const pathKey = path.join(".");
     const existing = provenance.get(pathKey);
-    if (existing) {
-      existing.overriddenBy = [...(existing.overriddenBy ?? []), label];
-    }
-    provenance.set(pathKey, {
-      value: source,
-      path,
-      sourceLabel: label,
-      overriddenBy: existing?.overriddenBy,
-    });
+    // overriddenBy accumulates every label that previously held this path (the
+    // losers). The current entry's own label is never included in its own
+    // overriddenBy — only later entries carry it forward once they, in turn,
+    // get overridden.
+    const overriddenBy = existing
+      ? [...(existing.overriddenBy ?? []), existing.sourceLabel]
+      : undefined;
+    provenance.set(pathKey, { value: source, path, sourceLabel: label, overriddenBy });
     return source;
   }
 
