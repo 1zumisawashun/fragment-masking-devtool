@@ -1,6 +1,11 @@
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
+import { parseTopLevelVariableNames } from "./parseTopLevelVariables.js";
+
+type WebviewMessage =
+  | { type: "topLevelVariables"; fileName: string; variableNames: string[] }
+  | { type: "error"; text: string };
 
 export function activate(context: vscode.ExtensionContext): void {
   const disposable = vscode.commands.registerCommand(
@@ -17,10 +22,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       panel.webview.onDidReceiveMessage((message: { type: string }) => {
         if (message.type === "ready") {
-          panel.webview.postMessage({
-            type: "hello",
-            text: `対象ファイル: ${uri?.fsPath ?? "(不明)"}`,
-          });
+          panel.webview.postMessage(buildTopLevelVariablesMessage(uri));
         }
       });
     },
@@ -30,6 +32,17 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {}
+
+function buildTopLevelVariablesMessage(uri?: vscode.Uri): WebviewMessage {
+  if (!uri) {
+    return { type: "error", text: "対象ファイルが選択されていません" };
+  }
+
+  const sourceText = readFileSync(uri.fsPath, "utf-8");
+  const variableNames = parseTopLevelVariableNames(uri.fsPath, sourceText);
+
+  return { type: "topLevelVariables", fileName: uri.fsPath, variableNames };
+}
 
 function buildWebviewHtml(webview: vscode.Webview, context: vscode.ExtensionContext): string {
   // Step1時点ではworkspace内の兄弟パッケージとして読む前提(vsceでのパッケージングはまだ未対応)。
