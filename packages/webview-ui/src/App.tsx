@@ -1,21 +1,18 @@
 import { useEffect, useState } from "react";
 import { getVsCodeApi } from "./vscodeApi";
 
-type ExtensionMessage = {
-  type: "hello";
-  text: string;
-};
+type ExtensionMessage =
+  | { type: "topLevelVariables"; fileName: string; variableNames: string[] }
+  | { type: "error"; text: string };
 
 export function App() {
-  const [receivedText, setReceivedText] = useState<string | undefined>();
+  const [message, setMessage] = useState<ExtensionMessage | undefined>();
 
   useEffect(() => {
     const vscode = getVsCodeApi();
 
     const handleMessage = (event: MessageEvent<ExtensionMessage>) => {
-      if (event.data.type === "hello") {
-        setReceivedText(event.data.text);
-      }
+      setMessage(event.data);
     };
     window.addEventListener("message", handleMessage);
 
@@ -27,8 +24,18 @@ export function App() {
   return (
     <main>
       <h1>Fragment Mock Viewer</h1>
-      <p>Step1: 拡張との疎通確認用ダミー画面</p>
-      <p>{receivedText ? `拡張からの応答: ${receivedText}` : "拡張からの応答を待っています..."}</p>
+      {message === undefined && <p>解析結果を待っています...</p>}
+      {message?.type === "error" && <p>{message.text}</p>}
+      {message?.type === "topLevelVariables" && (
+        <>
+          <p>{message.fileName}</p>
+          <ul>
+            {message.variableNames.map((name) => (
+              <li key={name}>{name}</li>
+            ))}
+          </ul>
+        </>
+      )}
     </main>
   );
 }
